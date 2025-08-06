@@ -2,10 +2,20 @@ require("dotenv").config();
 const express = require("express");
 const server = express();
 const mongoose = require("mongoose");
-const apiRoutes = require("./api-routes/index")
+const apiRoutes = require("./api-routes/index");
+
+const cors = require("cors");
+
+// ✅ Enable CORS
+server.use(
+  cors({
+    origin: "http://localhost:3000", // Frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // if you are using cookies/auth
+  })
+);
+
 server.use(express.json());
-
-
 
 (async () => {
   try {

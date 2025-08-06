@@ -1,4 +1,4 @@
-const Donation=require("../../models/donation.model")
+const Donation = require("../../models/donation.model");
 exports.createDonation = async (req, res) => {
   try {
     const { amount, method, message } = req.body;
@@ -23,6 +23,7 @@ exports.createDonation = async (req, res) => {
       data: donation,
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       message: "Internal Server Error.",
       error: error.message,

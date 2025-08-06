@@ -18,13 +18,14 @@ exports.loginUser = async (req, res) => {
     }
 
     const token = await authService.generateJwtToken(user._id);
-    user = await userService.getUserData(user);
+
     return res.status(200).json({
       message: "Successfully Logged In!",
       data: user,
       token: token,
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       message: "Internal Server Error. Please try again later.",
       error: error,
@@ -33,81 +34,46 @@ exports.loginUser = async (req, res) => {
 };
 
 exports.signupUser = async (req, res) => {
-  const session = await mongoose.startSession();
   try {
-    session.startTransaction();
-    const opts = { session, new: true };
-    const body = ({
+    const { firstName, lastName, email, password, phone, address, role } =
+      req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        message: "User is already registered with this email.",
+      });
+    }
+
+    const hashedPassword = await authService.hashUserPassword(password);
+
+    const newUser = await User.create({
       firstName,
       lastName,
       email,
-      password,
-      phoneNumber,
-      isEmailVerified,
-      details,
-      companyDetail,
-      userId,
-    } = req.body);
-    body.password = await userService.hashUserPassword(password);
-    let user;
-    if (userId) {
-      body.isEmailVerified = true;
-      body.acceptInvitation = true;
-      user = await User.findByIdAndUpdate(userId, body, opts);
-    } else {
-      const query = {
-        email: email,
-      };
-      const findUser = await User.findOne(query);
-      if (findUser) {
-        return res.status(400).json({
-          message: "User is already registered with this email.",
-        });
-      }
-      if (body?.type === USER_TYPES.TALENT) {
-        const profileCompletion = await userService.calculateProfileProgress(
-          body
-        );
-        body.profileCompletion = profileCompletion;
-      }
-      let newUser = await User.create([body], opts);
+      password: hashedPassword,
+      phone,
+      address,
+      role,
+    });
 
-      const sendEmail = await authService.sendAccountVerificationEmail(
-        email,
-        newUser[0]._id
-      );
-
-      if (!sendEmail) {
-        session.abortTransaction();
-        return res.status(400).json({
-          message: "There is some issue in sending email.",
-        });
-      }
-      user = newUser[0];
-    }
-    const token = await authService.generateJwtToken(user._id);
+    const token = await authService.generateJwtToken(newUser._id);
     if (!token) {
-      session.abortTransaction();
       return res.status(400).json({
-        message: "There is some issue in generating token.",
+        message: "There was an issue generating the token.",
       });
     }
-    await session.commitTransaction();
-    user = await userService.getUserData(user);
 
     return res.status(201).json({
       message: "Success: Account Created! 🎉",
-      data: user,
-      token: token,
+      data: newUser,
+      token,
     });
   } catch (error) {
-    console.log(error);
-    session.abortTransaction();
+    console.error("Signup Error:", error);
     return res.status(500).json({
       message: "Internal Server Error. Please try again later.",
-      error: error,
+      error: error.message,
     });
-  } finally {
-    session.endSession();
   }
 };

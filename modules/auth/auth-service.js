@@ -11,9 +11,10 @@ module.exports = {
     }
   },
 
-  generateJwtToken: async (userId, tokenExpiry) => {
+  generateJwtToken: async (userId) => {
     try {
-      const jwtToken = jwt.sign({ id: userId }, config.jwt.secret, {
+      const jwtSecret = process.env.JWT_SECRET;
+      const jwtToken = jwt.sign({ id: userId }, jwtSecret, {
         expiresIn: "7d",
       });
       return jwtToken;
@@ -25,7 +26,9 @@ module.exports = {
 
   hashUserPassword: async (password) => {
     try {
-      const salt = await bcrypt.genSalt(config.bcryptSaltValue);
+      const salt = await bcrypt.genSalt(
+        parseInt(process.env.BCRYPT_SALT, 10) || 10
+      );
       const hashedPassword = await bcrypt.hash(password, salt);
       return hashedPassword;
     } catch (error) {

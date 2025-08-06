@@ -2,12 +2,10 @@ const HelpRequest = require("../../models/help.model");
 exports.createHelpRequest = async (req, res) => {
   try {
     const { title, description, message } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
-    if (!title || !description) {
-      return res
-        .status(400)
-        .json({ message: "Title and description are required." });
+    if (!title || !description || !message) {
+      return res.status(400).json({ message: "All fields are required." });
     }
 
     const helpRequest = await HelpRequest.create({
